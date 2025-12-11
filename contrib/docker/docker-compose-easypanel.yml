@@ -1,0 +1,82 @@
+version: "3.6"
+
+services:
+  play:
+    image: thecodingmachine/workadventure-play:${VERSION:-v1.14.8}
+    restart: unless-stopped
+    ports:
+      - "3000" 
+    environment:
+      - DEBUG_MODE=${DEBUG_MODE:-false}
+      - PUSHER_URL=${PUSHER_URL}
+      - API_URL=back:50051
+      - TURN_SERVER=${TURN_SERVER}
+      - TURN_USER=${TURN_USER}
+      - TURN_PASSWORD=${TURN_PASSWORD}
+      - STUN_SERVER=${STUN_SERVER:-stun:stun.l.google.com:19302}
+      - JITSI_URL=${JITSI_URL:-meet.jit.si}
+      - JITSI_PRIVATE_MODE=${JITSI_PRIVATE_MODE:-false}
+      # LiveKit Integration
+      - ENABLE_LIVEKIT=${ENABLE_LIVEKIT:-true}
+      - LIVEKIT_URL=${LIVEKIT_URL}
+      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
+      - LIVEKIT_SECRET_KEY=${LIVEKIT_SECRET_KEY}
+      # Funcionalidades
+      - DISABLE_ANONYMOUS=${DISABLE_ANONYMOUS:-true}
+      - START_ROOM_URL=${START_ROOM_URL}
+      - MAX_PER_GROUP=${MAX_PER_GROUP:-4}
+      - ENABLE_CHAT=${ENABLE_CHAT:-true}
+      - ENABLE_CHAT_UPLOAD=${ENABLE_CHAT_UPLOAD:-true}
+    depends_on:
+      - back
+
+  # --- Backend + Pusher (API e WebSockets) ---
+  back:
+    image: thecodingmachine/workadventure-back:${VERSION:-v1.14.8}
+    restart: unless-stopped
+    ports:
+      - "8080"  # Configure o domínio api.suaempresa.com para esta porta (HTTP)
+      - "50051" # Porta gRPC interna (Não exponha domínio público para esta)
+    environment:
+      # URLs Públicas
+      - FRONT_URL=${FRONT_URL}
+      - PUSHER_URL=${PUSHER_URL}
+      - PUBLIC_MAP_STORAGE_URL=${PUBLIC_MAP_STORAGE_URL}
+      # Comunicação Interna
+      - API_URL=back:50051
+      - INTERNAL_MAP_STORAGE_URL=http://map-storage:3000
+      - REDIS_HOST=redis
+      # Segredos
+      - SECRET_KEY=${SECRET_KEY}
+      - ADMIN_API_TOKEN=${ADMIN_API_TOKEN}
+      - SECRET_JITSI_KEY=${SECRET_JITSI_KEY}
+      # LiveKit
+      - LIVEKIT_URL=${LIVEKIT_URL}
+      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
+      - LIVEKIT_SECRET_KEY=${LIVEKIT_SECRET_KEY}
+    depends_on:
+      - redis
+      - map-storage
+
+  # --- Map Storage (Hospedagem de Mapas) ---
+  map-storage:
+    image: thecodingmachine/workadventure-map-storage:${VERSION:-v1.14.8}
+    restart: unless-stopped
+    ports:
+      - "3000" 
+    environment:
+      - API_URL=back:50051
+      - AUTHENTICATION_STRATEGY=${MAP_STORAGE_AUTH_STRATEGY:-CheckMapStorageUrl}
+      - SECRET_KEY=${SECRET_KEY}
+    volumes:
+      - map-storage-data:/maps
+
+  redis:
+    image: redis:6
+    restart: unless-stopped
+    volumes:
+      - redisdata:/data
+
+volumes:
+  redisdata:
+  map-storage-data:
