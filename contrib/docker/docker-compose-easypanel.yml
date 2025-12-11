@@ -2,7 +2,7 @@ version: "3.6"
 
 services:
   play:
-    image: thecodingmachine/workadventure-play:${VERSION:-v1.14.16}
+    image: thecodingmachine/workadventure-play:${VERSION:master}
     restart: unless-stopped
     ports:
       - "3000"
@@ -35,7 +35,7 @@ services:
       - back
 
   back:
-    image: thecodingmachine/workadventure-back:${VERSION:-v1.14.16}
+    image: thecodingmachine/workadventure-back:${VERSION:master}
     restart: unless-stopped
     ports:
       - "8080"
@@ -61,7 +61,7 @@ services:
       - map-storage
 
   map-storage:
-    image: thecodingmachine/workadventure-map-storage:${VERSION:-v1.14.16}
+    image: thecodingmachine/workadventure-map-storage:${VERSION:master}
     restart: unless-stopped
     ports:
       - "3000"
