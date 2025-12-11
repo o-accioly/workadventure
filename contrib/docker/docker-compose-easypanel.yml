@@ -2,13 +2,19 @@ version: "3.6"
 
 services:
   play:
-    image: thecodingmachine/workadventure-play:${VERSION:-v1.14.8}
+    image: thecodingmachine/workadventure-play:${VERSION:-v1.14.16}
     restart: unless-stopped
     ports:
-      - "3000" 
+      - "3000"
     environment:
       - DEBUG_MODE=${DEBUG_MODE:-false}
       - PUSHER_URL=${PUSHER_URL}
+      # --- AS NOVAS VARIÁVEIS NECESSÁRIAS ---
+      - UPLOADER_URL=${UPLOADER_URL}   # <-- NOVO
+      - ICON_URL=${ICON_URL}           # <-- NOVO
+      - CHAT_URL=${CHAT_URL}           # <-- NOVO
+      - SECRET_KEY=${SECRET_KEY}       # <-- NOVO
+      # -------------------------------------
       - API_URL=back:50051
       - TURN_SERVER=${TURN_SERVER}
       - TURN_USER=${TURN_USER}
@@ -16,41 +22,37 @@ services:
       - STUN_SERVER=${STUN_SERVER:-stun:stun.l.google.com:19302}
       - JITSI_URL=${JITSI_URL:-meet.jit.si}
       - JITSI_PRIVATE_MODE=${JITSI_PRIVATE_MODE:-false}
-      # LiveKit Integration
       - ENABLE_LIVEKIT=${ENABLE_LIVEKIT:-true}
       - LIVEKIT_URL=${LIVEKIT_URL}
       - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
       - LIVEKIT_SECRET_KEY=${LIVEKIT_SECRET_KEY}
-      # Funcionalidades
       - DISABLE_ANONYMOUS=${DISABLE_ANONYMOUS:-true}
       - START_ROOM_URL=${START_ROOM_URL}
       - MAX_PER_GROUP=${MAX_PER_GROUP:-4}
       - ENABLE_CHAT=${ENABLE_CHAT:-true}
-      - ENABLE_CHAT_UPLOAD=${ENABLE_CHAT_UPLOAD:-true}
+      - ENABLE_CHAT_UPLOAD=${ENABLE_CHAT_UPLOAD:-false}
     depends_on:
       - back
 
-  # --- Backend + Pusher (API e WebSockets) ---
   back:
-    image: thecodingmachine/workadventure-back:${VERSION:-v1.14.8}
+    image: thecodingmachine/workadventure-back:${VERSION:-v1.14.16}
     restart: unless-stopped
     ports:
-      - "8080"  # Configure o domínio api.suaempresa.com para esta porta (HTTP)
-      - "50051" # Porta gRPC interna (Não exponha domínio público para esta)
+      - "8080"
+      - "50051"
     environment:
-      # URLs Públicas
       - FRONT_URL=${FRONT_URL}
       - PUSHER_URL=${PUSHER_URL}
       - PUBLIC_MAP_STORAGE_URL=${PUBLIC_MAP_STORAGE_URL}
-      # Comunicação Interna
+      # Adicionei aqui também para garantir
+      - UPLOADER_URL=${UPLOADER_URL}
+      - ICON_URL=${ICON_URL}
       - API_URL=back:50051
       - INTERNAL_MAP_STORAGE_URL=http://map-storage:3000
       - REDIS_HOST=redis
-      # Segredos
       - SECRET_KEY=${SECRET_KEY}
       - ADMIN_API_TOKEN=${ADMIN_API_TOKEN}
       - SECRET_JITSI_KEY=${SECRET_JITSI_KEY}
-      # LiveKit
       - LIVEKIT_URL=${LIVEKIT_URL}
       - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
       - LIVEKIT_SECRET_KEY=${LIVEKIT_SECRET_KEY}
@@ -58,16 +60,17 @@ services:
       - redis
       - map-storage
 
-  # --- Map Storage (Hospedagem de Mapas) ---
   map-storage:
-    image: thecodingmachine/workadventure-map-storage:${VERSION:-v1.14.8}
+    image: thecodingmachine/workadventure-map-storage:${VERSION:-v1.14.16}
     restart: unless-stopped
     ports:
-      - "3000" 
+      - "3000"
     environment:
       - API_URL=back:50051
       - AUTHENTICATION_STRATEGY=${MAP_STORAGE_AUTH_STRATEGY:-CheckMapStorageUrl}
       - SECRET_KEY=${SECRET_KEY}
+      
+      - PUSHER_URL=${PUSHER_URL} 
     volumes:
       - map-storage-data:/maps
 
