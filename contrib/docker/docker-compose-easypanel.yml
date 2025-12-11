@@ -2,75 +2,74 @@ version: "3.6"
 
 services:
   play:
-    image: thecodingmachine/workadventure-play:${VERSION:master}
+    # Aqui mantemos o ${VERSION:-master} para ter um valor padrão se falhar
+    image: thecodingmachine/workadventure-play:${VERSION:-master}
     restart: unless-stopped
     ports:
       - "3000"
     environment:
-      - DEBUG_MODE=${DEBUG_MODE:-false}
-      - PUSHER_URL=${PUSHER_URL}
-      # --- AS NOVAS VARIÁVEIS NECESSÁRIAS ---
-      - UPLOADER_URL=${UPLOADER_URL}   # <-- NOVO
-      - ICON_URL=${ICON_URL}           # <-- NOVO
-      - CHAT_URL=${CHAT_URL}           # <-- NOVO
-      - SECRET_KEY=${SECRET_KEY}       # <-- NOVO
-      # -------------------------------------
+      # --- SINTAXE DE PASSAGEM DIRETA (Sem o =valor) ---
+      - DEBUG_MODE
+      - PUSHER_URL
+      - UPLOADER_URL
+      - ICON_URL
+      - CHAT_URL
+      - SECRET_KEY
+      - TURN_SERVER
+      - TURN_USER
+      - TURN_PASSWORD
+      - STUN_SERVER
+      - JITSI_URL
+      - JITSI_PRIVATE_MODE
+      - ENABLE_LIVEKIT
+      - LIVEKIT_URL
+      - LIVEKIT_API_KEY
+      - LIVEKIT_SECRET_KEY
+      - DISABLE_ANONYMOUS
+      - START_ROOM_URL
+      - MAX_PER_GROUP
+      - ENABLE_CHAT
+      - ENABLE_CHAT_UPLOAD
+      # --- Variáveis que precisam de definição manual ---
       - API_URL=back:50051
-      - TURN_SERVER=${TURN_SERVER}
-      - TURN_USER=${TURN_USER}
-      - TURN_PASSWORD=${TURN_PASSWORD}
-      - STUN_SERVER=${STUN_SERVER:-stun:stun.l.google.com:19302}
-      - JITSI_URL=${JITSI_URL:-meet.jit.si}
-      - JITSI_PRIVATE_MODE=${JITSI_PRIVATE_MODE:-false}
-      - ENABLE_LIVEKIT=${ENABLE_LIVEKIT:-true}
-      - LIVEKIT_URL=${LIVEKIT_URL}
-      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
-      - LIVEKIT_SECRET_KEY=${LIVEKIT_SECRET_KEY}
-      - DISABLE_ANONYMOUS=${DISABLE_ANONYMOUS:-true}
-      - START_ROOM_URL=${START_ROOM_URL}
-      - MAX_PER_GROUP=${MAX_PER_GROUP:-4}
-      - ENABLE_CHAT=${ENABLE_CHAT:-true}
-      - ENABLE_CHAT_UPLOAD=${ENABLE_CHAT_UPLOAD:-false}
     depends_on:
       - back
 
   back:
-    image: thecodingmachine/workadventure-back:${VERSION:master}
+    image: thecodingmachine/workadventure-back:${VERSION:-master}
     restart: unless-stopped
     ports:
       - "8080"
       - "50051"
     environment:
-      - FRONT_URL=${FRONT_URL}
-      - PUSHER_URL=${PUSHER_URL}
-      - PUBLIC_MAP_STORAGE_URL=${PUBLIC_MAP_STORAGE_URL}
-      # Adicionei aqui também para garantir
-      - UPLOADER_URL=${UPLOADER_URL}
-      - ICON_URL=${ICON_URL}
+      - FRONT_URL
+      - PUSHER_URL
+      - PUBLIC_MAP_STORAGE_URL
+      - UPLOADER_URL
+      - ICON_URL
+      - SECRET_KEY
+      - ADMIN_API_TOKEN
+      - SECRET_JITSI_KEY
+      - LIVEKIT_URL
+      - LIVEKIT_API_KEY
+      - LIVEKIT_SECRET_KEY
+      - REDIS_HOST=redis
       - API_URL=back:50051
       - INTERNAL_MAP_STORAGE_URL=http://map-storage:3000
-      - REDIS_HOST=redis
-      - SECRET_KEY=${SECRET_KEY}
-      - ADMIN_API_TOKEN=${ADMIN_API_TOKEN}
-      - SECRET_JITSI_KEY=${SECRET_JITSI_KEY}
-      - LIVEKIT_URL=${LIVEKIT_URL}
-      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
-      - LIVEKIT_SECRET_KEY=${LIVEKIT_SECRET_KEY}
     depends_on:
       - redis
       - map-storage
 
   map-storage:
-    image: thecodingmachine/workadventure-map-storage:${VERSION:master}
+    image: thecodingmachine/workadventure-map-storage:${VERSION:-master}
     restart: unless-stopped
     ports:
       - "3000"
     environment:
+      - SECRET_KEY
+      - PUSHER_URL
+      - AUTHENTICATION_STRATEGY=CheckMapStorageUrl
       - API_URL=back:50051
-      - AUTHENTICATION_STRATEGY=${MAP_STORAGE_AUTH_STRATEGY:-CheckMapStorageUrl}
-      - SECRET_KEY=${SECRET_KEY}
-      
-      - PUSHER_URL=${PUSHER_URL} 
     volumes:
       - map-storage-data:/maps
 
