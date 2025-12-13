@@ -4,22 +4,20 @@ version: "3.6"
 x-common-env: &common-env
   # --- URLs (CRÍTICO: DEVEM TER https://) ---
   DOMAIN: "${DOMAIN}"
-  # O Backend exige PLAY_URL, então espelhamos o FRONT_URL aqui
-  PLAY_URL: "${FRONT_URL}"
+  # O Back precisa saber onde o Front está
+  PLAY_URL: "${FRONT_URL}" 
   FRONT_URL: "${FRONT_URL}"
   PUSHER_URL: "${PUSHER_URL}"
-  # Se UPLOADER_URL estiver vazio, usa a API como fallback
-  UPLOADER_URL: "${UPLOADER_URL:-${PUSHER_URL}/uploader}"
-  ICON_URL: "${ICON_URL:-${PUSHER_URL}/icon}"
-  CHAT_URL: "${CHAT_URL:-${PUSHER_URL}}"
+  # Fallbacks inteligentes para evitar "Invalid URL"
+  UPLOADER_URL: "${UPLOADER_URL:-https://api.kayamind.com/uploader}"
+  ICON_URL: "${ICON_URL:-https://api.kayamind.com/icon}"
+  CHAT_URL: "${CHAT_URL:-https://api.kayamind.com}"
   START_ROOM_URL: "${START_ROOM_URL}"
   PUBLIC_MAP_STORAGE_URL: "${PUBLIC_MAP_STORAGE_URL}"
 
   # --- Segredos ---
   SECRET_KEY: "${SECRET_KEY}"
   ADMIN_API_TOKEN: "${ADMIN_API_TOKEN}"
-  # Usamos a mesma Secret Key para o Token do Mapa para simplificar
-  MAP_STORAGE_API_TOKEN: "${SECRET_KEY}" 
   
   # --- LiveKit ---
   ENABLE_LIVEKIT: "${ENABLE_LIVEKIT:-true}"
@@ -31,7 +29,7 @@ x-common-env: &common-env
   DEBUG_MODE: "${DEBUG_MODE:-false}"
   MAX_PER_GROUP: "${MAX_PER_GROUP:-4}"
   ENABLE_CHAT: "${ENABLE_CHAT:-true}"
-  ENABLE_CHAT_UPLOAD: "${ENABLE_CHAT_UPLOAD:-false}"
+  ENABLE_CHAT_UPLOAD: "${ENABLE_CHAT_UPLOAD:-true}"
   DISABLE_ANONYMOUS: "${DISABLE_ANONYMOUS:-false}"
 
 services:
@@ -65,8 +63,6 @@ services:
       API_URL: "back:50051"
       INTERNAL_MAP_STORAGE_URL: "http://map-storage:3000"
       REDIS_HOST: "redis"
-      # Força o uso da estratégia correta no back também
-      AUTHENTICATION_STRATEGY: "Bearer"
     depends_on:
       - redis
       - map-storage
@@ -80,9 +76,10 @@ services:
     environment:
       <<: *common-env
       API_URL: "back:50051"
-      # CORREÇÃO DO ERRO AQUI:
-      AUTHENTICATION_STRATEGY: "Bearer"
-      # O Token já está definido no common-env
+      # --- CORREÇÃO DA AUTENTICAÇÃO (NOVO PADRÃO) ---
+      ENABLE_BEARER_AUTHENTICATION: "true"
+      AUTHENTICATION_TOKEN: "${SECRET_KEY}"
+      # Removemos AUTHENTICATION_STRATEGY pois foi depreciado
     volumes:
       - map-storage-data:/maps
 
