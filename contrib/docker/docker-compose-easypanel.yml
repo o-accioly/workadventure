@@ -1,40 +1,63 @@
 version: "3.6"
 
+# --- BLOCO DE VARIÁVEIS COMPARTILHADAS ---
+# Definimos tudo aqui uma vez só.
+x-common-env: &common-env
+  # Versão e Debug
+  DEBUG_MODE: "${DEBUG_MODE:-false}"
+  
+  # URLs Principais
+  DOMAIN: "${DOMAIN}"
+  FRONT_URL: "${FRONT_URL}"
+  PUSHER_URL: "${PUSHER_URL}"
+  UPLOADER_URL: "${UPLOADER_URL}"
+  ICON_URL: "${ICON_URL}"
+  CHAT_URL: "${CHAT_URL}"
+  START_ROOM_URL: "${START_ROOM_URL}"
+  PUBLIC_MAP_STORAGE_URL: "${PUBLIC_MAP_STORAGE_URL}"
+
+  # Segredos (Essenciais)
+  SECRET_KEY: "${SECRET_KEY}"
+  ADMIN_API_TOKEN: "${ADMIN_API_TOKEN}"
+  
+  # LiveKit (Vídeo)
+  ENABLE_LIVEKIT: "${ENABLE_LIVEKIT:-true}"
+  LIVEKIT_URL: "${LIVEKIT_URL}"
+  LIVEKIT_API_KEY: "${LIVEKIT_API_KEY}"
+  LIVEKIT_SECRET_KEY: "${LIVEKIT_SECRET_KEY}"
+  
+  # Funcionalidades
+  DISABLE_ANONYMOUS: "${DISABLE_ANONYMOUS:-false}"
+  MAX_PER_GROUP: "${MAX_PER_GROUP:-4}"
+  ENABLE_CHAT: "${ENABLE_CHAT:-true}"
+  ENABLE_CHAT_UPLOAD: "${ENABLE_CHAT_UPLOAD:-false}"
+  
+  # Jitsi (Legado/Fallback)
+  JITSI_URL: "${JITSI_URL:-meet.jit.si}"
+  JITSI_PRIVATE_MODE: "${JITSI_PRIVATE_MODE:-false}"
+  SECRET_JITSI_KEY: "${SECRET_JITSI_KEY}"
+
 services:
+  # --- FRONTEND ---
   play:
-    # Aqui mantemos o ${VERSION:-master} para ter um valor padrão se falhar
     image: thecodingmachine/workadventure-play:${VERSION:-master}
     restart: unless-stopped
     ports:
       - "3000"
     environment:
-      # --- SINTAXE DE PASSAGEM DIRETA (Sem o =valor) ---
-      - DEBUG_MODE
-      - PUSHER_URL
-      - UPLOADER_URL
-      - ICON_URL
-      - CHAT_URL
-      - SECRET_KEY
-      - TURN_SERVER
-      - TURN_USER
-      - TURN_PASSWORD
-      - STUN_SERVER
-      - JITSI_URL
-      - JITSI_PRIVATE_MODE
-      - ENABLE_LIVEKIT
-      - LIVEKIT_URL
-      - LIVEKIT_API_KEY
-      - LIVEKIT_SECRET_KEY
-      - DISABLE_ANONYMOUS
-      - START_ROOM_URL
-      - MAX_PER_GROUP
-      - ENABLE_CHAT
-      - ENABLE_CHAT_UPLOAD
-      # --- Variáveis que precisam de definição manual ---
-      - API_URL=back:50051
+      # Puxa todas as variáveis do bloco comum acima
+      <<: *common-env
+      
+      # Variáveis Específicas do Play
+      API_URL: "back:50051"
+      TURN_SERVER: "${TURN_SERVER}"
+      TURN_USER: "${TURN_USER}"
+      TURN_PASSWORD: "${TURN_PASSWORD}"
+      STUN_SERVER: "${STUN_SERVER:-stun:stun.l.google.com:19302}"
     depends_on:
       - back
 
+  # --- BACKEND ---
   back:
     image: thecodingmachine/workadventure-back:${VERSION:-master}
     restart: unless-stopped
@@ -42,37 +65,34 @@ services:
       - "8080"
       - "50051"
     environment:
-      - FRONT_URL
-      - PUSHER_URL
-      - PUBLIC_MAP_STORAGE_URL
-      - UPLOADER_URL
-      - ICON_URL
-      - SECRET_KEY
-      - ADMIN_API_TOKEN
-      - SECRET_JITSI_KEY
-      - LIVEKIT_URL
-      - LIVEKIT_API_KEY
-      - LIVEKIT_SECRET_KEY
-      - REDIS_HOST=redis
-      - API_URL=back:50051
-      - INTERNAL_MAP_STORAGE_URL=http://map-storage:3000
+      # Puxa todas as variáveis do bloco comum
+      <<: *common-env
+      
+      # Variáveis Específicas do Back
+      API_URL: "back:50051"
+      INTERNAL_MAP_STORAGE_URL: "http://map-storage:3000"
+      REDIS_HOST: "redis"
     depends_on:
       - redis
       - map-storage
 
+  # --- MAP STORAGE ---
   map-storage:
     image: thecodingmachine/workadventure-map-storage:${VERSION:-master}
     restart: unless-stopped
     ports:
       - "3000"
     environment:
-      - SECRET_KEY
-      - PUSHER_URL
-      - AUTHENTICATION_STRATEGY=CheckMapStorageUrl
-      - API_URL=back:50051
+      # Puxa variáveis comuns (garante que SECRET_KEY e PUSHER_URL venham)
+      <<: *common-env
+      
+      # Variáveis Específicas
+      API_URL: "back:50051"
+      AUTHENTICATION_STRATEGY: "CheckMapStorageUrl"
     volumes:
       - map-storage-data:/maps
 
+  # --- REDIS ---
   redis:
     image: redis:6
     restart: unless-stopped
