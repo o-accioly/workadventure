@@ -1,59 +1,55 @@
 version: "3.6"
 
 # --- BLOCO DE VARIÁVEIS COMPARTILHADAS ---
-# Definimos tudo aqui uma vez só.
 x-common-env: &common-env
-  # Versão e Debug
-  DEBUG_MODE: "${DEBUG_MODE:-false}"
-  
-  # URLs Principais
+  # --- URLs (CRÍTICO: DEVEM TER https://) ---
   DOMAIN: "${DOMAIN}"
+  # O Backend exige PLAY_URL, então espelhamos o FRONT_URL aqui
+  PLAY_URL: "${FRONT_URL}"
   FRONT_URL: "${FRONT_URL}"
   PUSHER_URL: "${PUSHER_URL}"
-  UPLOADER_URL: "${UPLOADER_URL}"
-  ICON_URL: "${ICON_URL}"
-  CHAT_URL: "${CHAT_URL}"
+  # Se UPLOADER_URL estiver vazio, usa a API como fallback
+  UPLOADER_URL: "${UPLOADER_URL:-${PUSHER_URL}/uploader}"
+  ICON_URL: "${ICON_URL:-${PUSHER_URL}/icon}"
+  CHAT_URL: "${CHAT_URL:-${PUSHER_URL}}"
   START_ROOM_URL: "${START_ROOM_URL}"
   PUBLIC_MAP_STORAGE_URL: "${PUBLIC_MAP_STORAGE_URL}"
 
-  # Segredos (Essenciais)
+  # --- Segredos ---
   SECRET_KEY: "${SECRET_KEY}"
   ADMIN_API_TOKEN: "${ADMIN_API_TOKEN}"
+  # Usamos a mesma Secret Key para o Token do Mapa para simplificar
+  MAP_STORAGE_API_TOKEN: "${SECRET_KEY}" 
   
-  # LiveKit (Vídeo)
+  # --- LiveKit ---
   ENABLE_LIVEKIT: "${ENABLE_LIVEKIT:-true}"
   LIVEKIT_URL: "${LIVEKIT_URL}"
   LIVEKIT_API_KEY: "${LIVEKIT_API_KEY}"
   LIVEKIT_SECRET_KEY: "${LIVEKIT_SECRET_KEY}"
   
-  # Funcionalidades
-  DISABLE_ANONYMOUS: "${DISABLE_ANONYMOUS:-false}"
+  # --- Configurações Gerais ---
+  DEBUG_MODE: "${DEBUG_MODE:-false}"
   MAX_PER_GROUP: "${MAX_PER_GROUP:-4}"
   ENABLE_CHAT: "${ENABLE_CHAT:-true}"
   ENABLE_CHAT_UPLOAD: "${ENABLE_CHAT_UPLOAD:-false}"
-  
-  # Jitsi (Legado/Fallback)
-  JITSI_URL: "${JITSI_URL:-meet.jit.si}"
-  JITSI_PRIVATE_MODE: "${JITSI_PRIVATE_MODE:-false}"
-  SECRET_JITSI_KEY: "${SECRET_JITSI_KEY}"
+  DISABLE_ANONYMOUS: "${DISABLE_ANONYMOUS:-false}"
 
 services:
-  # --- FRONTEND ---
+  # --- FRONTEND (PLAY) ---
   play:
     image: thecodingmachine/workadventure-play:${VERSION:-master}
     restart: unless-stopped
     ports:
       - "3000"
     environment:
-      # Puxa todas as variáveis do bloco comum acima
       <<: *common-env
-      
-      # Variáveis Específicas do Play
       API_URL: "back:50051"
       TURN_SERVER: "${TURN_SERVER}"
       TURN_USER: "${TURN_USER}"
       TURN_PASSWORD: "${TURN_PASSWORD}"
       STUN_SERVER: "${STUN_SERVER:-stun:stun.l.google.com:19302}"
+      JITSI_URL: "${JITSI_URL:-meet.jit.si}"
+      JITSI_PRIVATE_MODE: "${JITSI_PRIVATE_MODE:-false}"
     depends_on:
       - back
 
@@ -65,13 +61,12 @@ services:
       - "8080"
       - "50051"
     environment:
-      # Puxa todas as variáveis do bloco comum
       <<: *common-env
-      
-      # Variáveis Específicas do Back
       API_URL: "back:50051"
       INTERNAL_MAP_STORAGE_URL: "http://map-storage:3000"
       REDIS_HOST: "redis"
+      # Força o uso da estratégia correta no back também
+      AUTHENTICATION_STRATEGY: "Bearer"
     depends_on:
       - redis
       - map-storage
@@ -83,12 +78,11 @@ services:
     ports:
       - "3000"
     environment:
-      # Puxa variáveis comuns (garante que SECRET_KEY e PUSHER_URL venham)
       <<: *common-env
-      
-      # Variáveis Específicas
       API_URL: "back:50051"
-      AUTHENTICATION_STRATEGY: "CheckMapStorageUrl"
+      # CORREÇÃO DO ERRO AQUI:
+      AUTHENTICATION_STRATEGY: "Bearer"
+      # O Token já está definido no common-env
     volumes:
       - map-storage-data:/maps
 
